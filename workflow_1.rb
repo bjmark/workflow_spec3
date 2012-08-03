@@ -1,70 +1,104 @@
 #encoding:utf-8
-Ruote.process_definition :name => "合同审签/变更", :revision => "1.0.0" do
+Ruote.process_definition :name => "合同审签/变更", :revision => "2.0.0" do
 	cursor do
 		#业务部审核"
 		#发起审签
-		business_manager :tag => 'step1', :submit => ['下一步:业务部负责人审核']
+		business_manager :tag => 'step1', 
+			:submit => {'下一步:业务部负责人审核' => nil}
 		
 		#业务部门负责人审核
-		business_dept_head  :tag => 'step2', :submit => ['上一步:发起审签 => jump to step1','下一步:项目审查']
+		business_dept_head  :tag => 'step2', 
+			:submit => {
+			'上一步:发起审签' => 'jump to step1',
+			'下一步:项目审查' => nil}
 
 		#风险部审核
 		#项目审查
-		risk_dept_examiner :tag => 'step3', :submit => ["上一步:业务部负责人审核 => jump to step2","下一步:法务审核"]
-		
+		risk_dept_examiner :tag => 'step3', 
+			:submit => {
+			"上一步:业务部负责人审核" => "jump to step2",
+			"下一步:法务审核" => nil}
 		#法务审核
-		risk_dept_legal_examiner :tag => 'step4', :submit => ["上一步:项目审查 => jump to step3","下一步:法务复核"]
+		risk_dept_legal_examiner :tag => 'step4', 
+			:submit => {
+			"上一步:项目审查" => "jump to step3",
+			"下一步:法务复核(风险部负责人终审)" => {"step11" => 
+				{
+					"下一步:分管副总裁审批" => 'del',
+					"终审通过" => {'command' => 'jump to step14', 'ok' => '1'},
+					"终审否决" => {'command' => 'jump to setp14', 'ok' => '0'}
+				}},
+			"下一步:法务复核(副总裁终审)" => {"step12" =>
+				{
+					"下一步:总裁审批" => 'del',
+					"终审通过" => {'command' => 'jump to step14','ok' => '1'},
+					"终审否决" => {'command' => 'jump to step14','ok' => '0'}
+				}},
+			"下一步:法务复核(总裁终审)" => nil}
 
 		#法务复核
-		risk_dept_legal_reviewer :tag => 'step5', :submit => ["上一步:法务审核 => jump to step4","下一步:风险部负责人审核"]
+		risk_dept_legal_reviewer :tag => 'step5', 
+			:submit => {
+			"上一步:法务审核" => "jump to step4",
+			"下一步:风险部负责人审核" => nil}
 
 		#风险部负责人审核
 		risk_dept_head :tag => 'step6', 
-			:submit => ["上一步:法务复核 => jump to step5","下一步:业务核算岗审核","退回:发起人 =>=> rewind"]
-	  rewind :if => "${f:go} == rewind"
+			:submit => {
+			"上一步:法务复核" => "jump to step5",
+			"下一步:业务核算岗审核" => nil,
+			"退回:发起人" => "rewind"}
 
 		#计财部审核
 		#业务核算岗审核
 		accounting_dept_accounting_post :tag => 'step7', 
-			:submit => ["上一步:风险部负责人审核 => step6","下一步:计财部负责人审核"]
-		
+			:submit => {
+			"上一步:风险部负责人审核" => "jump to step6",
+			"下一步:计财部负责人审核" => nil}
+
 		#计财部负责人审核
-		accounting_dept_head :tag => 'step8', :submit => ["上一步:业务核算岗审核 => step7","下一步:业务经理检查会办结果","退回:项目审查 =>=> step3"]
-	  jump :to => 'step3', :if => "${f:go} == step3"
+		accounting_dept_head :tag => 'step8', 
+			:submit => {
+			"上一步:业务核算岗审核" => "jump to step7",
+			"下一步:业务经理检查会办结果" => nil,
+			"退回:项目审查" => "jump to step3"}
 
 		#业务经理检查会办结果
 		business_manager :tag => 'step9', 
-			:submit => ["上一步:计财部负责人审核 => step8","下一步:业务部负责人检查会办结果"]
-    
+			:submit => {
+			"上一步:计财部负责人审核" => "jump to step8",
+			"下一步:业务部负责人检查会办结果" => nil}
+
 		#业务部负责人检查会办结果
 		business_dept_head :tag => 'step10', 
-			:submit => ["上一步:业务经理检查会办结果 => step9","下一步:风险管理部负责人检查会办结果","退回:项目审查 =>=> step3"]
-	  jump :to => 'step3', :if => "${f:go} == step3"
-   
+			:submit => {
+			"上一步:业务经理检查会办结果" => "jump to step9",
+			"下一步:风险管理部负责人检查会办结果" => nil,
+			"退回:项目审查" => "jump to step3"}
+
 		#风险管理部负责人检查会办结果
 		risk_dept_head :tag => 'step11', 
-			:submit => ["上一步:业务部负责人检查会办结果 => jump to step10","下一步:分管副总裁审批"]
-	  rewind :if => "${f:go} == rewind"
+			:submit => {
+			"上一步:业务部负责人检查会办结果" => "jump to step10",
+			"下一步:分管副总裁审批" => nil}
 
 		#分管副总裁审批
 		vp :tag => 'step12', 
-			:submit => [
-				"上一步:风险管理部负责人检查会办结果 => step11",
-				"下一步:总裁审批",
-				"退到:项目审查 =>=> step3", 
-				"合同管理岗打印合同 =>=> step14"]
-	  jump :to => 'step3', :if => "${f:go} == step3"
-	  jump :to => 'step14', :if => "${f:go} == step14"
-   
+			:submit => {
+			"上一步:风险管理部负责人检查会办结果" => "jump to step11",
+			"下一步:总裁审批" => nil,
+			"退到:项目审查" => "jump to step3"} 
+
 		#总裁审批
 		president :tag => 'step13', 
-			:submit => [
-				"上一步:分管副总裁审批 => step12",
-				"下一步:合同管理岗打印合同"]
-    
-		#合同管理岗打印合同
-		contract_management_post :tag => 'step14', :submit => ["下一步:完成"]
+			:submit => {
+			"上一步:分管副总裁审批" => "jump to step12",
+			"终审通过" => {'ok' => '1'},
+			"终审否决" => {'ok' => '0'}}
 
-    completer
+		completer :tag => 'step14'
+
+		#合同管理岗打印合同
+		contract_management_post :tag => 'step15', :submit => {"完成" => nil}
 	end
 end
