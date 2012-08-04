@@ -109,7 +109,10 @@ describe '合同审签/变更' do
 		process(:risk_dept_legal_reviewer)
 
 		#risk_dept_head :tag => "风险部负责人审核"
-		process(:risk_dept_head) 
+		process(:risk_dept_head) do |wi|
+			op_name = "下一步:业务核算岗审核"
+			exec_submit(wi,op_name)
+		end
 
 		#accounting_dept_accounting_post :tag => "业务核算岗审核"
 		process(:accounting_dept_accounting_post)
@@ -267,7 +270,7 @@ describe '合同审签/变更' do
       merge_submit(wi).should == { 
 				"上一步:业务部负责人检查会办结果" => "jump to step10",
 				"终审通过" => {'command' => 'jump to step14','ok' => '1'},
-				"终审否决" => {'command' => 'jump to setp14', 'ok' => '0'}
+				"终审否决" => {'command' => 'jump to step14', 'ok' => '0'}
 			}
 
 			op_name = "终审通过"

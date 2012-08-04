@@ -26,7 +26,7 @@ Ruote.process_definition :name => "合同审签/变更", :revision => "2.0.0" do
 				{
 					"下一步:分管副总裁审批" => 'del',
 					"终审通过" => {'command' => 'jump to step14', 'ok' => '1'},
-					"终审否决" => {'command' => 'jump to setp14', 'ok' => '0'}
+					"终审否决" => {'command' => 'jump to step14', 'ok' => '0'}
 				}},
 			"下一步:法务复核(副总裁终审)" => {"step12" =>
 				{
