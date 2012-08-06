@@ -1,8 +1,46 @@
 #encoding:utf-8
 ENV['BUNDLE_GEMFILE'] ||= File.expand_path('../Gemfile', __FILE__)
-require 'bundler/setup' if File.exists?(ENV['BUNDLE_GEMFILE'])
+require 'bundler/setup' #if File.exists?(ENV['BUNDLE_GEMFILE'])
 require 'ruote'   
 require 'pp'
+
+# final_right colud be 
+# step11,
+# step12,
+# step13
+
+def set_final_right(workitem,final_right)
+	workitem.fields.delete(workitem.fields['final_right'])
+	workitem.fields['final_right'] = final_right
+
+	workitem.fields[final_right] = {
+		"终审通过" => {'command' => 'jump to step14','ok' => '1'},
+		"终审否决" => {'command' => 'jump to step14','ok' => '0'}
+	}
+
+	case final_right
+	when 'step11'
+		workitem.fields[final_right]["下一步:分管副总裁审批"] = 'del'
+	end
+end
+
+def workflow1_step5_edit(workitem,final_right)
+	workflow1_step5_update(workitem,final_right)
+end
+
+def workflow1_step6_edit(workitem,final_right=nil)
+	workflow1_step6_update(workitem,final_right)
+end
+
+def workflow1_step5_update(workitem,final_right)
+	set_final_right(workitem,final_right)
+	return workitem
+end
+
+def workflow1_step6_update(workitem,final_right)
+	set_final_right(workitem,final_right)
+	return workitem
+end
 
 def merge_submit(workitem)
 	my_tag = workitem.fields['params']['tag']
@@ -106,7 +144,11 @@ describe '合同审签/变更' do
 		process(:risk_dept_legal_examiner)
 
 		#risk_dept_legal_reviewer :tag => "法务复核"
-		process(:risk_dept_legal_reviewer)
+		process(:risk_dept_legal_reviewer) do |wi|
+			action = wi.fields['params']['action']
+			action.should == 'workflow1_step5_edit'
+			send(action,wi,'step13') 
+		end
 
 		#risk_dept_head :tag => "风险部负责人审核"
 		process(:risk_dept_head) do |wi|
@@ -242,16 +284,27 @@ describe '合同审签/变更' do
 		process(:risk_dept_examiner)
 
 		#risk_dept_legal_examiner :tag => "法务审核"
-		process(:risk_dept_legal_examiner) do |wi|
-			op_name = "下一步:法务复核(风险部负责人终审)" 
-			exec_submit(wi,op_name)
-		end
+		process(:risk_dept_legal_examiner) 
 
 		#risk_dept_legal_reviewer :tag => "法务复核"
-		process(:risk_dept_legal_reviewer)
+		process(:risk_dept_legal_reviewer) do |wi|
+			action = wi.fields['params']['action']
+			action.should == 'workflow1_step5_edit'
+			send(action,wi,'step12') 
+		end
 
 		#risk_dept_head :tag => "风险部负责人审核"
-		process(:risk_dept_head)
+		process(:risk_dept_head) do |wi|
+			wi.fields['final_right'].should == 'step12'
+			wi.fields['step12'].should == {
+				"终审通过" => {'command' => 'jump to step14','ok' => '1'},
+				"终审否决" => {'command' => 'jump to step14','ok' => '0'}
+			}
+
+			action = wi.fields['params']['action']
+			action.should == 'workflow1_step6_edit'
+			send(action,wi,'step11')
+		end
 
 		#accounting_dept_accounting_post :tag => "业务核算岗审核"
 		process(:accounting_dept_accounting_post)
@@ -267,7 +320,7 @@ describe '合同审签/变更' do
 
 		#风险管理部负责人检查会办结果
 		process(:risk_dept_head) do |wi|
-      merge_submit(wi).should == { 
+			merge_submit(wi).should == { 
 				"上一步:业务部负责人检查会办结果" => "jump to step10",
 				"终审通过" => {'command' => 'jump to step14','ok' => '1'},
 				"终审否决" => {'command' => 'jump to step14', 'ok' => '0'}
@@ -288,16 +341,17 @@ describe '合同审签/变更' do
 		process(:risk_dept_examiner)
 
 		#risk_dept_legal_examiner :tag => "法务审核"
-		process(:risk_dept_legal_examiner) do |wi|
-			op_name = "下一步:法务复核(总裁终审)" 
-			exec_submit(wi,op_name)
-		end
+		process(:risk_dept_legal_examiner) 
 
 		#risk_dept_legal_reviewer :tag => "法务复核"
-		process(:risk_dept_legal_reviewer)
+		process(:risk_dept_legal_reviewer) do |wi|
+			action = wi.fields['params']['action']
+			action.should == 'workflow1_step5_edit'
+			send(action,wi,'step13') 
+		end
 
 		#risk_dept_head :tag => "风险部负责人审核"
-		process(:risk_dept_head)
+		process(:risk_dept_head) 
 
 		#accounting_dept_accounting_post :tag => "业务核算岗审核"
 		process(:accounting_dept_accounting_post)
@@ -313,12 +367,12 @@ describe '合同审签/变更' do
 
 		#风险管理部负责人检查会办结果
 		process(:risk_dept_head) do |wi|
-      merge_submit(wi).should == { 
-			"上一步:业务部负责人检查会办结果" => "jump to step10",
-			"下一步:分管副总裁审批" => nil}
+			merge_submit(wi).should == { 
+				"上一步:业务部负责人检查会办结果" => "jump to step10",
+				"下一步:分管副总裁审批" => nil}
 
-			op_name = "下一步:分管副总裁审批"
-			exec_submit(wi,op_name)
+				op_name = "下一步:分管副总裁审批"
+				exec_submit(wi,op_name)
 		end
 
 		process(:vp)
@@ -332,5 +386,4 @@ describe '合同审签/变更' do
 			wi.fields['ok'].should == '1'
 		end
 	end
-
 end

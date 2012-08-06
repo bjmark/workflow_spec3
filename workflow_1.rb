@@ -22,32 +22,22 @@ Ruote.process_definition :name => "合同审签/变更", :revision => "2.0.0" do
 		risk_dept_legal_examiner :tag => 'step4', 
 			:submit => {
 			"上一步:项目审查" => "jump to step3",
-			"下一步:法务复核(风险部负责人终审)" => {"step11" => 
-				{
-					"下一步:分管副总裁审批" => 'del',
-					"终审通过" => {'command' => 'jump to step14', 'ok' => '1'},
-					"终审否决" => {'command' => 'jump to step14', 'ok' => '0'}
-				}},
-			"下一步:法务复核(副总裁终审)" => {"step12" =>
-				{
-					"下一步:总裁审批" => 'del',
-					"终审通过" => {'command' => 'jump to step14','ok' => '1'},
-					"终审否决" => {'command' => 'jump to step14','ok' => '0'}
-				}},
-			"下一步:法务复核(总裁终审)" => nil}
-
+			"下一步:法务复核" => nil} 
+		
 		#法务复核
 		risk_dept_legal_reviewer :tag => 'step5', 
 			:submit => {
 			"上一步:法务审核" => "jump to step4",
-			"下一步:风险部负责人审核" => nil}
+			"下一步:风险部负责人审核" => nil},
+			:action => 'workflow1_step5_edit'
 
 		#风险部负责人审核
 		risk_dept_head :tag => 'step6', 
 			:submit => {
 			"上一步:法务复核" => "jump to step5",
 			"下一步:业务核算岗审核" => nil,
-			"退回:发起人" => "rewind"}
+			"退回:发起人" => "rewind"},
+			:action => 'workflow1_step6_edit'
 
 		#计财部审核
 		#业务核算岗审核
@@ -91,10 +81,7 @@ Ruote.process_definition :name => "合同审签/变更", :revision => "2.0.0" do
 
 		#总裁审批
 		president :tag => 'step13', 
-			:submit => {
-			"上一步:分管副总裁审批" => "jump to step12",
-			"终审通过" => {'ok' => '1'},
-			"终审否决" => {'ok' => '0'}}
+			:submit => {"上一步:分管副总裁审批" => "jump to step12"}
 
 		completer :tag => 'step14'
 
