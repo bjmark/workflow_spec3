@@ -17,13 +17,17 @@ Ruote.process_definition :name => "头寸报备", :revision => "2.0.0" do
 		risk_dept_examiner :tag => 'step3',
 			:submit => {
 			"上一步:业务部负责人审核" => "jump to step2",
-			"下一步:法务审核" => nil}
+			"下一步:法务审核" => nil,
+			"退回到发起审签" => 'rewind'
+		}
 
 		#"法务岗审核"
 		risk_dept_legal_examiner :tag => 'step4', 
 			:submit => {
 			"上一步:项目审核" => "jump to step3",
-			"下一步:风险部负责人审核" => nil}
+			"下一步:风险部负责人审核" => nil,
+			"退回到发起审签" => 'rewind'
+		}
 
 		#"风险部负责人"
 		risk_dept_head  :tag => "step5",

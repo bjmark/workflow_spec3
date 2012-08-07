@@ -29,7 +29,7 @@ Ruote.process_definition :name => "合同审签/变更", :revision => "2.0.0" do
 			:submit => {
 			"上一步:法务审核" => "jump to step4",
 			"下一步:风险部负责人审核" => nil},
-			:action => 'workflow1_step5_edit'
+			:action => 'workflow1_step5'
 
 		#风险部负责人审核
 		risk_dept_head :tag => 'step6', 
@@ -37,7 +37,7 @@ Ruote.process_definition :name => "合同审签/变更", :revision => "2.0.0" do
 			"上一步:法务复核" => "jump to step5",
 			"下一步:业务核算岗审核" => nil,
 			"退回:发起人" => "rewind"},
-			:action => 'workflow1_step6_edit'
+			:action => 'workflow1_step6'
 
 		#计财部审核
 		#业务核算岗审核

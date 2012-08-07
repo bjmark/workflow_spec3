@@ -72,6 +72,50 @@ describe '头寸报备' do
 	end
 
 	it "完美路线" do
-		@road.last.should == :contract_management_post
+		# "发起人(主办或协办)"
+		process(:business_manager)		
+
+		#"本业务部负责人"
+		process(:business_dept_head)
+
+		# "项目审查岗"
+		process(:risk_dept_examiner)
+
+		#"法务岗审核"
+		process(:risk_dept_legal_examiner)
+
+		#"风险部负责人"
+		process(:risk_dept_head)
+
+		#"资金管理岗"
+		process(:capital_manager)
+
+		#"金融市场部负责人"
+		process(:capital_market_dept_head) do |wi|
+			op_name = '终审通过'
+			exec_submit(wi,op_name)
+		end
+
+		process(:completer) 
+
+		@workitem.fields['ok'].should == '1'
+		@road.last.should == :completer
+	end
+
+	it "从项目审查退回到发起审签" do
+		# "发起人(主办或协办)"
+		process(:business_manager)		
+
+		#"本业务部负责人"
+		process(:business_dept_head)
+
+		# "项目审查岗"
+		process(:risk_dept_examiner) do |wi|
+			op_name = '退回到发起审签'
+			exec_submit(wi,op_name)
+		end
+
+		process(:business_manager)		
+		@road.last.should == :business_manager
 	end
 end
