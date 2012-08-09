@@ -4,7 +4,10 @@ Ruote.process_definition :name => "头寸报备", :revision => "2.0.0" do
 		# "业务部审核" 
 		# "发起人(主办或协办)"
 		business_manager :tag => 'step1',		
-			:submit => {'下一步:业务部负责人审核' => nil}
+			:submit => {
+			'下一步:业务部负责人审核' => nil,
+			'取消流程' => {'command' => 'jump to finish','ok' => '2'}
+		}
 
 		#"本业务部负责人"
 		business_dept_head :tag => 'step2',
@@ -49,7 +52,7 @@ Ruote.process_definition :name => "头寸报备", :revision => "2.0.0" do
 			"终审通过" => {'ok' => '1'},
 			"终审否决" => {'ok' => '0'}}
 
-		completer
+		completer :tag => 'finish'
 	end
 end
 

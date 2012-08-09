@@ -4,7 +4,10 @@ Ruote.process_definition :name => "合同审签/变更", :revision => "2.0.0" do
 		#业务部审核"
 		#发起审签
 		business_manager :tag => 'step1', 
-			:submit => {'下一步:业务部负责人审核' => nil}
+			:submit => {
+			'下一步:业务部负责人审核' => nil,
+			'取消流程' => {'command' => 'jump to finish','ok' => '2'}
+		}
 		
 		#业务部门负责人审核
 		business_dept_head  :tag => 'step2', 
@@ -51,7 +54,7 @@ Ruote.process_definition :name => "合同审签/变更", :revision => "2.0.0" do
 			:submit => {
 			"上一步:业务核算岗审核" => "jump to step7",
 			"下一步:业务经理检查会办结果" => nil,
-			"退回:项目审查" => "jump to step3"}
+			"退回:法务审核" => "jump to step4"}
 
 		#业务经理检查会办结果
 		business_manager :tag => 'step9', 
@@ -64,7 +67,7 @@ Ruote.process_definition :name => "合同审签/变更", :revision => "2.0.0" do
 			:submit => {
 			"上一步:业务经理检查会办结果" => "jump to step9",
 			"下一步:风险管理部负责人检查会办结果" => nil,
-			"退回:项目审查" => "jump to step3"}
+			"退回:法务审核" => "jump to step4"}
 
 		#风险管理部负责人检查会办结果
 		risk_dept_head :tag => 'step11', 
@@ -73,17 +76,17 @@ Ruote.process_definition :name => "合同审签/变更", :revision => "2.0.0" do
 			"下一步:分管副总裁审批" => nil}
 
 		#分管副总裁审批
-		vp :tag => 'step12', 
+		vp :tag => 'step_vp', 
 			:submit => {
 			"上一步:风险管理部负责人检查会办结果" => "jump to step11",
 			"下一步:总裁审批" => nil,
-			"退到:项目审查" => "jump to step3"} 
+			"退到:法务审核" => "jump to step4"} 
 
 		#总裁审批
-		president :tag => 'step13', 
-			:submit => {"上一步:分管副总裁审批" => "jump to step12"}
+		president :tag => 'step_president', 
+			:submit => {"上一步:分管副总裁审批" => "jump to step_vp"}
 
-		completer :tag => 'step14'
+		completer :tag => 'finish'
 
 		#合同管理岗打印合同
 		contract_management_post :tag => 'step15', :submit => {"完成" => nil}

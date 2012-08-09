@@ -78,4 +78,15 @@ describe '合同起租' do
 		process(:accounting_dept_accounting_post)
 		@road.last.should == :accounting_dept_accounting_post
 	end
+
+	it '业务经理取消流程' do
+		process(:business_manager) do |wi|
+			op_name = '取消流程'
+			exec_submit(wi,op_name)
+		end
+
+		process(:completer) do |wi|
+			wi.fields['ok'].should == '2'
+		end
+	end
 end

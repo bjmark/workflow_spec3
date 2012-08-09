@@ -14,8 +14,8 @@ def set_final_right(workitem,final_right)
 	workitem.fields['final_right'] = final_right
 
 	workitem.fields[final_right] = {
-		"终审通过" => {'command' => 'jump to step14','ok' => '1'},
-		"终审否决" => {'command' => 'jump to step14','ok' => '0'}
+		"终审通过" => {'command' => 'jump to finish','ok' => '1'},
+		"终审否决" => {'command' => 'jump to finish','ok' => '0'}
 	}
 
 	case final_right
@@ -86,7 +86,11 @@ describe '合同审签/变更' do
 
 	it "完美路线" do
 		process(:business_manager) do |wi|
-			merge_submit(wi).keys.should == ['下一步:业务部负责人审核']
+			merge_submit(wi).keys.should == 
+				[
+					'下一步:业务部负责人审核',
+					'取消流程' 
+			]
 			op_name = '下一步:业务部负责人审核'
 			exec_submit(wi,op_name)
 		end
@@ -100,7 +104,7 @@ describe '合同审签/变更' do
 		process(:risk_dept_legal_reviewer) do |wi|
 			action = wi.fields['params']['action']
 			action.should == 'workflow1_step5'
-			send("#{action}_edit",wi,'step13') 
+			send("#{action}_edit",wi,'step_president') 
 		end
 
 		#risk_dept_head :tag => "风险部负责人审核"
@@ -164,7 +168,7 @@ describe '合同审签/变更' do
 		@road.last.should == :business_manager
 	end
 
-	it "<计财部负责人审核>跳到<项目审查>" do 
+	it "<计财部负责人审核>跳到<发务审核>" do 
 		process(:business_manager)
 		process(:business_dept_head)
 		process(:risk_dept_examiner)
@@ -181,11 +185,11 @@ describe '合同审签/变更' do
 
 		#accounting_dept_head "计财部负责人审核"
 		process(:accounting_dept_head) do |wi|
-			op_name = '退回:项目审查'
+			op_name = '退回:法务审核'
 			exec_submit(wi,op_name)
 		end
-		process(:risk_dept_examiner)
-		@road.last.should == :risk_dept_examiner
+		process(:risk_dept_legal_examiner)
+		@road.last.should == :risk_dept_legal_examiner
 	end
 
 	it '总裁退回给副总裁' do
@@ -227,7 +231,7 @@ describe '合同审签/变更' do
 		end
 
 		process(:vp)
-		@workitem.fields['params']['tag'].should == 'step12'
+		@workitem.fields['params']['tag'].should == 'step_vp'
 		@road.last.should == :vp
 	end
 
@@ -243,15 +247,15 @@ describe '合同审签/变更' do
 		process(:risk_dept_legal_reviewer) do |wi|
 			action = wi.fields['params']['action']
 			action.should == 'workflow1_step5'
-			send("#{action}_edit",wi,'step12') 
+			send("#{action}_edit",wi,'step_vp') 
 		end
 
 		#risk_dept_head :tag => "风险部负责人审核"
 		process(:risk_dept_head) do |wi|
-			wi.fields['final_right'].should == 'step12'
-			wi.fields['step12'].should == {
-				"终审通过" => {'command' => 'jump to step14','ok' => '1'},
-				"终审否决" => {'command' => 'jump to step14','ok' => '0'}
+			wi.fields['final_right'].should == 'step_vp'
+			wi.fields['step_vp'].should == {
+				"终审通过" => {'command' => 'jump to finish','ok' => '1'},
+				"终审否决" => {'command' => 'jump to finish','ok' => '0'}
 			}
 
 			action = wi.fields['params']['action']
@@ -275,8 +279,8 @@ describe '合同审签/变更' do
 		process(:risk_dept_head) do |wi|
 			merge_submit(wi).should == { 
 				"上一步:业务部负责人检查会办结果" => "jump to step10",
-				"终审通过" => {'command' => 'jump to step14','ok' => '1'},
-				"终审否决" => {'command' => 'jump to step14', 'ok' => '0'}
+				"终审通过" => {'command' => 'jump to finish','ok' => '1'},
+				"终审否决" => {'command' => 'jump to finish', 'ok' => '0'}
 			}
 
 			op_name = "终审通过"
@@ -300,7 +304,7 @@ describe '合同审签/变更' do
 		process(:risk_dept_legal_reviewer) do |wi|
 			action = wi.fields['params']['action']
 			action.should == 'workflow1_step5'
-			send("#{action}_edit",wi,'step13') 
+			send("#{action}_edit",wi,'step_president') 
 		end
 
 		#risk_dept_head :tag => "风险部负责人审核"
@@ -338,5 +342,36 @@ describe '合同审签/变更' do
 		process(:completer) do |wi|
 			wi.fields['ok'].should == '1'
 		end
+	end
+
+	it '业务经理取消流程' do
+		process(:business_manager) do |wi|
+			op_name = '取消流程'
+			exec_submit(wi,op_name)
+		end
+
+		process(:completer) do |wi|
+			wi.fields['ok'].should == '2'
+		end
+	end
+
+	it '业务经理取消流程2' do
+		process(:business_manager) 
+		process(:business_dept_head) do |wi|
+			op_name = '上一步:发起审签'
+			exec_submit(wi,op_name)
+		end
+
+		process(:business_manager) do |wi|
+			op_name = '取消流程'
+			exec_submit(wi,op_name)
+		end
+
+		process(:completer) do |wi|
+			wi.fields['ok'].should == '2'
+		end
+	end
+
+	it '业务经理取消流程3' do
 	end
 end
