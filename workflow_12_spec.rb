@@ -4,29 +4,6 @@ require 'bundler/setup' #if File.exists?(ENV['BUNDLE_GEMFILE'])
 require 'ruote'   
 require 'pp'
 require './workflow_share'
-
-class Project
-	include WorkflowRight 
-	@@hhash = {}
-
-	def self.find(id)
-		Project.new
-	end
-
-	def hhash
-		@@hhash
-	end
-end
-
-class User
-	def roles
-		[
-			Role.new('risk_dept_legal_examiner'),
-			Role.new('accounting_dept_accounting_post'),
-		]
-	end
-end
-
 # final_right colud be 
 # step11,
 # step12,
@@ -43,7 +20,7 @@ def set_final_right(workitem,final_right)
 
 	case final_right
 	when 'step11'
-		workitem.fields[final_right]["下一步:分管副总裁"] = 'del'
+		workitem.fields[final_right]["下一步:分管副总裁审批"] = 'del'
 	end
 end
 
@@ -65,24 +42,18 @@ def workflow1_step6_update(workitem,final_right)
 	return workitem
 end
 
-
-describe '合同审签' do
+describe '合同变更' do
 	before(:each) do 
 		@hash_storage = Ruote::HashStorage.new() 
 		@worker = Ruote::Worker.new(@hash_storage) 
 		@engine = Ruote::Engine.new(@worker) 
 
 		@engine.register do
-			participant 'no_op', Ruote::NoOpParticipant
-			participant 'right_setter', Workflow1RightSetterParticipant
 			catchall Ruote::StorageParticipant
 		end
 
-		workflow_t = File.open('workflow_1.rb') {|f| f.read} 
-		@wfid = @engine.launch(
-			workflow_t,
-			'target' => {'type' => 'project','id' => 1}
-		)
+		workflow_t = File.open('workflow_12.rb') {|f| f.read} 
+		@wfid = @engine.launch(workflow_t)
 
 		@road = []
 	end
@@ -102,7 +73,7 @@ describe '合同审签' do
 			op_name = '终审通过'
 			exec_submit(wi,op_name)
 		end
-
+		
 		process(:completer) do |wi|
 			wi.fields['ok'].should == '1'
 		end
@@ -114,110 +85,17 @@ describe '合同审签' do
 		process(:business_manager)
 		process(:business_dept_head)
 		process(:risk_dept_examiner) do |wi|
-			op_name = "上一步:业务部负责人"
+			op_name = "上一步:业务部负责人审核"
 			exec_submit(wi,op_name)
-			wi.target.instance_of?(Project).should == true
 		end
 		process(:business_dept_head,false)
 
-		@road.should == [:business_manager,:business_dept_head,
-			:risk_dept_examiner,:business_dept_head]
+		@road.should == [:business_manager,:business_dept_head,:risk_dept_examiner,:business_dept_head]
 	end
 
 	it "完美路线-终审通过" do
 		process(:business_manager) do |wi|
-			op_name = '下一步:业务部负责人'
-			exec_submit(wi,op_name)
-		end
-		process(:business_dept_head)
-		process(:risk_dept_examiner)
-
-		#risk_dept_legal_examiner :tag => "法务审核"
-		process(:risk_dept_legal_examiner) do |wi|
-			p = Project.find(1)
-			u = User.new
-			op = 'edit_overdue_day_rate'
-
-			p.has_right?(op,u).should be_true
-
-			on_leave = wi.fields['params']['on_leave']
-			on_leave.each do |fun,var|
-				case fun
-				when 'del_right'
-					p.del_right(var)
-				end
-			end
-			p.has_right?(op,u).should == false
-		end
-
-		#risk_dept_legal_reviewer :tag => "法务复核"
-		process(:risk_dept_legal_reviewer) do |wi|
-			action = wi.fields['params']['action']
-			action.should == 'workflow1_step5'
-			send("#{action}_edit",wi,'step_president') 
-		end
-
-		#risk_dept_head :tag => "风险部负责人审核"
-		process(:risk_dept_head) do |wi|
-			op_name = "下一步:业务核算岗"
-			exec_submit(wi,op_name)
-		end
-
-		#accounting_dept_accounting_post :tag => "业务核算岗审核"
-		process(:accounting_dept_accounting_post) do |wi|
-			u = User.new
-			wi.target.has_right?('edit_rate_adjustment_type',u).should be_true
-
-			on_leave = wi.fields['params']['on_leave']
-			on_leave.each do |fun,var|
-				case fun
-				when 'del_right'
-					wi.target.del_right(var)
-				end
-			end
-			wi.target.has_right?('edit_rate_adjustment_type',u).should == false
-		end
-
-		#accounting_dept_head "计财部负责人审核"
-		process(:accounting_dept_head)
-
-		#business_manager :tag => "业务经理检查会办结果"
-		process(:business_manager)
-
-		#business_dept_head  :tag => "业务部负责人检查会办结果"
-		process(:business_dept_head)
-
-		#风险管理部负责人检查会办结果
-		process(:risk_dept_head) 
-
-		#vp :tag => "分管副总裁审批"
-		process(:vp)
-
-		#president :tag => "总裁审批"
-		process(:president) do |wi|
-			merge_submit(wi).should == {
-				"上一步:分管副总裁" => "jump to step_vp",
-				"终审通过" => {'command' => 'jump to finish','ok' => '1'},
-				"终审否决" => {'command' => 'jump to finish','ok' => '0'}
-			}
-
-			op_name = '终审通过'
-			exec_submit(wi,op_name)
-		end
-
-		process(:completer) do |wi|
-			wi.fields['ok'].should == '1'
-		end
-
-		#contract_management_post :tag => "合同管理岗打印合同"
-		process(:contract_management_post) 
-
-		@road.last.should == :contract_management_post
-	end
-
-	it "完美路线-终审否决" do
-		process(:business_manager) do |wi|
-			op_name = '下一步:业务部负责人'
+			op_name = '下一步:业务部负责人审核'
 			exec_submit(wi,op_name)
 		end
 		process(:business_dept_head)
@@ -235,7 +113,7 @@ describe '合同审签' do
 
 		#risk_dept_head :tag => "风险部负责人审核"
 		process(:risk_dept_head) do |wi|
-			op_name = "下一步:业务核算岗"
+			op_name = "下一步:业务核算岗审核"
 			exec_submit(wi,op_name)
 		end
 
@@ -260,7 +138,71 @@ describe '合同审签' do
 		#president :tag => "总裁审批"
 		process(:president) do |wi|
 			merge_submit(wi).should == {
-				"上一步:分管副总裁" => "jump to step_vp",
+				"上一步:分管副总裁审批" => "jump to step_vp",
+				"终审通过" => {'command' => 'jump to finish','ok' => '1'},
+				"终审否决" => {'command' => 'jump to finish','ok' => '0'}
+			}
+
+			op_name = '终审通过'
+			exec_submit(wi,op_name)
+		end
+
+		process(:completer) do |wi|
+			wi.fields['ok'].should == '1'
+		end
+
+		#contract_management_post :tag => "合同管理岗打印合同"
+		process(:contract_management_post) 
+
+		@road.last.should == :contract_management_post
+	end
+
+	it "完美路线-终审否决" do
+		process(:business_manager) do |wi|
+			op_name = '下一步:业务部负责人审核'
+			exec_submit(wi,op_name)
+		end
+		process(:business_dept_head)
+		process(:risk_dept_examiner)
+
+		#risk_dept_legal_examiner :tag => "法务审核"
+		process(:risk_dept_legal_examiner)
+
+		#risk_dept_legal_reviewer :tag => "法务复核"
+		process(:risk_dept_legal_reviewer) do |wi|
+			action = wi.fields['params']['action']
+			action.should == 'workflow1_step5'
+			send("#{action}_edit",wi,'step_president') 
+		end
+
+		#risk_dept_head :tag => "风险部负责人审核"
+		process(:risk_dept_head) do |wi|
+			op_name = "下一步:业务核算岗审核"
+			exec_submit(wi,op_name)
+		end
+
+		#accounting_dept_accounting_post :tag => "业务核算岗审核"
+		process(:accounting_dept_accounting_post)
+
+		#accounting_dept_head "计财部负责人审核"
+		process(:accounting_dept_head)
+
+		#business_manager :tag => "业务经理检查会办结果"
+		process(:business_manager)
+
+		#business_dept_head  :tag => "业务部负责人检查会办结果"
+		process(:business_dept_head)
+
+		#风险管理部负责人检查会办结果
+		process(:risk_dept_head) 
+
+		#vp :tag => "分管副总裁审批"
+		process(:vp)
+
+		#president :tag => "总裁审批"
+		process(:president) do |wi|
+			merge_submit(wi).should == {
+				"上一步:分管副总裁审批" => "jump to step_vp",
 				"终审通过" => {'command' => 'jump to finish','ok' => '1'},
 				"终审否决" => {'command' => 'jump to finish','ok' => '0'}
 			}
@@ -315,7 +257,7 @@ describe '合同审签' do
 
 		#accounting_dept_head "计财部负责人审核"
 		process(:accounting_dept_head) do |wi|
-			op_name = '退回:法务审核岗'
+			op_name = '退回:法务审核'
 			exec_submit(wi,op_name)
 		end
 		process(:risk_dept_legal_examiner)
@@ -356,7 +298,7 @@ describe '合同审签' do
 
 		#president :tag => "总裁审批"
 		process(:president) do |wi|
-			op_name = '上一步:分管副总裁'
+			op_name = '上一步:分管副总裁审批'
 			exec_submit(wi,op_name)
 		end
 
@@ -456,14 +398,14 @@ describe '合同审签' do
 		process(:risk_dept_head) do |wi|
 			merge_submit(wi).should == { 
 				"上一步:业务部负责人检查会办结果" => "jump to step10",
-				"下一步:分管副总裁" => nil}
+				"下一步:分管副总裁审批" => nil}
 
-				op_name = "下一步:分管副总裁"
+				op_name = "下一步:分管副总裁审批"
 				exec_submit(wi,op_name)
 		end
 
 		process(:vp) do |wi|
-			op_name = '下一步:总裁'
+			op_name = '下一步:总裁审批'
 			exec_submit(wi,op_name)
 		end
 

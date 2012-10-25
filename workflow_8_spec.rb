@@ -5,7 +5,7 @@ require 'ruote'
 require 'pp'
 require './workflow_share'
 
-describe '合同关闭' do
+describe '租后检查' do
 	before(:each) do 
 		@hash_storage = Ruote::HashStorage.new() 
 		@worker = Ruote::Worker.new(@hash_storage) 
@@ -15,7 +15,7 @@ describe '合同关闭' do
 			catchall Ruote::StorageParticipant
 		end
 
-		workflow_t = File.open('workflow_5.rb') {|f| f.read} 
+		workflow_t = File.open('workflow_8.rb') {|f| f.read} 
 		@wfid = @engine.launch(workflow_t)
 
 		@road = []
@@ -26,38 +26,20 @@ describe '合同关闭' do
 	end
 
 	it "完美路线" do
-		#业务部审核
-		#发起人(主办或协办)
-		process(:business_manager) 
-
-		#本业务部负责人
+		process(:business_manager)
 		process(:business_dept_head) 
-
-		#计财部审核
-		#业务核算岗审核
-		process(:accounting_dept_accounting_post) 
-
-		#计财部负责人审核
-		process(:accounting_dept_head) 
-
-		#风险部审核
-		#风险管理部法务审核岗
-		process(:risk_dept_legal_examiner)
-
-		#风险部负责人
+		process(:risk_dept_asset_manager)
 		process(:risk_dept_head) do |wi|
-			op_name = '终审否决'
+			op_name = '签收租后检查报告'
 			exec_submit(wi,op_name)
 		end
 
 		process(:completer) do |wi|
-			wi.fields['ok'].should == '0'
+			wi.fields['ok'].should == '1'
 		end
-
-		@road.last.should == :completer
 	end
 
-	it "业务经理取消流程" do
+	it '取消流程' do
 		process(:business_manager) do |wi|
 			op_name = '取消流程'
 			exec_submit(wi,op_name)
@@ -66,5 +48,18 @@ describe '合同关闭' do
 		process(:completer) do |wi|
 			wi.fields['ok'].should == '2'
 		end
+	end
+
+	it "退回业务部门" do
+		process(:business_manager)
+		process(:business_dept_head) 
+		process(:risk_dept_asset_manager)
+		process(:risk_dept_head) do |wi|
+			op_name = '退回业务部门'
+			exec_submit(wi,op_name)
+		end
+
+		process(:business_manager) 
+		@road.last.should == :business_manager
 	end
 end

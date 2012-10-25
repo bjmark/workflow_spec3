@@ -135,14 +135,6 @@ describe '放款审批' do
 		#分管副总裁
 		process(:vp) do |wi|
 			submit = merge_submit(wi)
-			submit.should == {
-				"上一步:会计审核岗审核" => "jump to step9",
-				"下一步:总裁审核" => nil,
-				'退到风险部负责人' => 'jump to step5',
-				"终审通过" => {'command' => 'jump to finish','ok' => '1'},
-				"终审否决" => {'command' => 'jump to finish','ok' => '0'}
-			}
-
 			op_name = '终审通过'
 			exec_submit(wi,op_name)
 		end

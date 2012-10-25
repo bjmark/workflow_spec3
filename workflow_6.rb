@@ -6,7 +6,9 @@ Ruote.process_definition :name => "资金调拔", :revision => "2.0.0" do
 		capital_manager :tag => 'step1',
 			:submit => {
 			'下一步:金融市场部负责人' => nil,
-			'取消流程' => {'command' => 'jump to finish','ok' => '2'}
+			'取消流程' => {'command' => 'jump to finish','ok' => '2'},
+			#"终审通过" => {'command' => 'jump to finish','ok' => '1'},
+			#"终审否决" => {'command' => 'jump to finish','ok' => '0'},
 		}
 
 		#金融市场部负责人

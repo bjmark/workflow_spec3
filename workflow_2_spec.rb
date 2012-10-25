@@ -5,6 +5,30 @@ require 'ruote'
 require 'pp'
 require './workflow_share'
 
+class CashPosition
+	include WorkflowRight 
+	@@hhash = {}
+	
+	def self.find(id)
+		CashPosition.new
+	end
+
+	def hhash
+		@@hhash
+	end
+end
+
+class User
+	def roles
+		[
+			Role.new('risk_dept_examiner'),
+			Role.new('risk_dept_legal_examiner'),
+			Role.new('capital_manager'),
+			Role.new('capital_market_dept_head'),
+		]
+	end
+end
+
 describe '头寸报备' do
 	before(:each) do 
 		@hash_storage = Ruote::HashStorage.new() 
@@ -12,11 +36,16 @@ describe '头寸报备' do
 		@engine = Ruote::Engine.new(@worker) 
 
 		@engine.register do
+			participant 'no_op', Ruote::NoOpParticipant
+			participant 'right_setter', Workflow1RightSetterParticipant
 			catchall Ruote::StorageParticipant
 		end
 
 		workflow_t = File.open('workflow_2.rb') {|f| f.read} 
-		@wfid = @engine.launch(workflow_t)
+		@wfid = @engine.launch(
+			workflow_t,
+			'target' => {'type' => 'cash_position','id' => 1}
+		)
 
 		@road = []
 	end
@@ -33,7 +62,20 @@ describe '头寸报备' do
 		process(:business_dept_head)
 
 		# "项目审查岗"
-		process(:risk_dept_examiner)
+		process(:risk_dept_examiner) do |wi|
+			u = User.new
+			op = 'update_account_for_position_scale'
+			wi.target.has_right?(op,u).should be_true
+			
+			on_leave = wi.fields['params']['on_leave']
+			on_leave.each do |fun,var|
+				case fun
+				when 'del_right'
+					wi.target.del_right(var)
+				end
+			end
+			wi.target.has_right?(op,u).should == false
+		end
 
 		#"法务岗审核"
 		process(:risk_dept_legal_examiner)

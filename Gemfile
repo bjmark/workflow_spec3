@@ -1,6 +1,6 @@
 source 'http://rubygems.org'
 
-gem "ruote", :git => 'git://github.com/jmettraux/ruote.git'
+gem "ruote", "~> 2.3.0.1"
 gem 'yajl-ruby', :require => 'yajl'
-gem "ruote-kit", :git => 'git://github.com/kennethkalmer/ruote-kit.git'
+gem "ruote-kit","~> 2.2.0.3" 
 gem "rspec"

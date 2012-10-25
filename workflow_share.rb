@@ -1,3 +1,5 @@
+# -*-_ encoding: utf-8 -*-
+
 def merge_submit(workitem)
 	my_tag = workitem.fields['params']['tag']
 	hash = workitem.fields[my_tag]
@@ -44,4 +46,60 @@ def process(parti_name,proceed=true)
 
 	@road << parti_name
 end
+
+class Workflow1RightSetterParticipant
+	include Ruote::LocalParticipant
+
+	def on_workitem
+		p = workitem.target
+		workitem.fields['params']['add_right'].each do |op,role|
+			p.add_right(op,role)
+		end
+		reply
+	end
+end
+
+class Ruote::Workitem
+	def target
+		target = self.fields["target"]
+		#target["type"].camelize.constantize.find(target["id"])
+		case target["type"]
+		when 'project'
+			Project.find(target["id"])
+		when 'cash_position'
+			CashPosition.find(target['id'])
+		else
+			raise 'invalid target'
+		end
+	end
+end
+
+module WorkflowRight
+	def add_right(op,role)
+		hhash['overview'] ||= {}
+		hhash['overview'][op] = role
+	end
+
+	def del_right(op)
+		overview = (hhash['overview'] or {})
+
+		op = [op] if op.instance_of?(String)
+		op.each do |e|
+			overview.delete(e)
+		end
+	end
+
+	def has_right?(op,u)
+		codes = u.roles.collect{|e| e.code}
+		codes.include?(hhash['overview'][op])
+	end
+end
+
+class Role
+	attr_accessor :code
+	def initialize(s)
+		self.code = s
+	end
+end
+
 
