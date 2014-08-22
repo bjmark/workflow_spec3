@@ -10,6 +10,7 @@ class WorkflowCreditHelper < WorkflowHelper
   end
 
   def save_examiner_suggest
+    @req.instance_variable_set('@comments', 'abc')
   end
 end
 

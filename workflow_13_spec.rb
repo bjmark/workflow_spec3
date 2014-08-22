@@ -253,8 +253,11 @@ describe '授信审批' do
       wi.fields['blade']['default_examiner_id'].should == 123
       wi.fields['blade']['receiver_id'].should == 123
 
-      helper = build_helper(wi)
+      req = Request.new
+      req.instance_variable_set('@comments', '123')
+      helper = build_helper(wi, req)
       helper.before_proceed('下一步:风险部项目复核岗复审')
+      req.instance_variable_get('@comments').should == 'abc'
     end
 
     process(:risk_dept_reviewer) do |wi|
