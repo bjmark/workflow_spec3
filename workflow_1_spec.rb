@@ -1,7 +1,11 @@
 #encoding:utf-8
 ENV['BUNDLE_GEMFILE'] ||= File.expand_path('../Gemfile', __FILE__)
 require 'bundler/setup' #if File.exists?(ENV['BUNDLE_GEMFILE'])
+
+require 'yajl' 
+require 'redis' # gem install redis
 require 'ruote'   
+require 'ruote-redis' # gem install ruote-redis
 require 'pp'
 require './workflow_share'
 
@@ -68,9 +72,9 @@ end
 
 describe '合同审签' do
 	before(:each) do 
-		@hash_storage = Ruote::HashStorage.new() 
-		@worker = Ruote::Worker.new(@hash_storage) 
-		@engine = Ruote::Engine.new(@worker) 
+		@storage = Ruote::HashStorage.new() 
+		@worker = Ruote::Worker.new(@storage) 
+		@engine = Ruote::Dashboard.new(@worker) 
 
 		@engine.register do
 			participant 'no_op', Ruote::NoOpParticipant
@@ -79,8 +83,7 @@ describe '合同审签' do
 		end
 
 		workflow_t = File.open('workflow_1.rb') {|f| f.read} 
-		@wfid = @engine.launch(
-			workflow_t,
+		@wfid = @engine.launch(workflow_t,
 			'target' => {'type' => 'project','id' => 1}
 		)
 
@@ -123,8 +126,8 @@ describe '合同审签' do
 		@road.should == [:business_manager,:business_dept_head,
 			:risk_dept_examiner,:business_dept_head]
 	end
-
-	it "完美路线-终审通过" do
+	
+  it "完美路线-终审通过" do
 		process(:business_manager) do |wi|
 			op_name = '下一步:业务部负责人'
 			exec_submit(wi,op_name)
@@ -210,9 +213,9 @@ describe '合同审签' do
 		end
 
 		#contract_management_post :tag => "合同管理岗打印合同"
-		process(:contract_management_post) 
+		#process(:contract_management_post) 
 
-		@road.last.should == :contract_management_post
+		@road.last.should == :completer
 	end
 
 	it "完美路线-终审否决" do

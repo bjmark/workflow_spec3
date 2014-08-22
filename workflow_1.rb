@@ -7,6 +7,7 @@ Ruote.process_definition :name => "合同审签", :revision => "2.0.0" do
 		right_setter :add_right => {
 			'update_project' => 'business_manager'
 		}
+
 		business_manager :on_leave => {
 			'del_right' => 'update_project'},
 			:submit => {
@@ -120,12 +121,12 @@ Ruote.process_definition :name => "合同审签", :revision => "2.0.0" do
 		}
 
 		completer :tag => 'finish'
-
-		terminate :if => '${f:ok} == 0'
-		terminate :if => '${f:ok} == 2'
+		
+		#terminate :if => '${f:ok} == 0'
+		#terminate :if => '${f:ok} == 2'
 		
 		#合同管理岗打印合同
-		contract_management_post :tag => 'step15', :submit => {"完成" => nil}
-		completer2 
+		#contract_management_post :tag => 'step15', :submit => {"完成" => nil}
+		#completer2 
 	end
 end
