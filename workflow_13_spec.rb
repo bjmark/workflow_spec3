@@ -10,6 +10,10 @@ require 'pp'
 require './workflow_helper'
 require './workflow_credit_helper'
 
+class Request
+  attr_accessor :params
+end
+
 class CompeleterParticipant
   include Ruote::LocalParticipant
 
@@ -19,12 +23,12 @@ class CompeleterParticipant
   end
 end
 
-def build_helper(wi, req_params = nil, current_user = nil)
+def build_helper(wi, req = nil, current_user = nil)
   class_name = wi.fields['blade']['helper']
   if class_name
-    helper = Object.const_get(class_name).new(wi, req_params, current_user)
+    helper = Object.const_get(class_name).new(wi, req, current_user)
   else
-    helper = WorkflowHelper.new(wi, req_params, current_user)  
+    helper = WorkflowHelper.new(wi, req, current_user)  
   end
 end
 
@@ -239,8 +243,9 @@ describe '授信审批' do
     process(:business_dept_head)
 
     process(:risk_dept_reviewer) do |wi|
-      req_params = {'examiner_id' => 123}
-      helper = build_helper(wi, req_params)
+      req = Request.new
+      req.params = {'examiner_id' => 123}
+      helper = build_helper(wi, req)
       helper.before_proceed('下一步:风险部项目审查岗审查')
     end
 

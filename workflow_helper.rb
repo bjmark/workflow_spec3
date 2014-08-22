@@ -1,9 +1,9 @@
 #encoding:utf-8
 
 class WorkflowHelper
-  def initialize(workitem, req_params, current_user)
+  def initialize(workitem, req, current_user)
     @workitem = workitem
-    @req_params = req_params
+    @req = req
     @current_user = current_user
   end
 
