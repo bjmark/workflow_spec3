@@ -263,6 +263,41 @@ describe '授信审批' do
     process(:risk_dept_reviewer) do |wi|
       wi.fields['blade']['default_examiner_id'].should == 123
       wi.fields['blade']['receiver_id'].should be_nil
+      
+      op_name = '上一步:风险部项目审查岗审查'
+      helper = build_helper(wi)
+      helper.before_proceed(op_name)
+      helper.exec_submit(op_name)
+    end
+
+    process(:risk_dept_examiner) do |wi|
+      wi.fields['blade']['default_examiner_id'].should == 123
+      wi.fields['blade']['receiver_id'].should == 123
     end
   end
+
+  specify 'validate_examiner' do
+    process(:business_manager) 		
+    process(:business_dept_head)
+
+    process(:risk_dept_reviewer) do |wi|
+      req = Request.new
+      req.params = {'examiner_id' => ''} #没有指定审查人
+      helper = build_helper(wi, req)
+      helper.validate('下一步:风险部项目审查岗审查').size.should == 1
+    end
+  end
+
+  specify 'validate_suggest' do
+    process(:business_manager) 		
+    process(:business_dept_head)
+
+    process(:risk_dept_reviewer) do |wi|
+      req = Request.new
+      req.params = {'examiner_id' => ''} #没有指定审查人
+      helper = build_helper(wi, req)
+      helper.validate('下一步:风险部项目审查岗审查').size.should == 1
+    end
+  end
+
 end

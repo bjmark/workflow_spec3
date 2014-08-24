@@ -1,7 +1,7 @@
 #encoding:utf-8
 Ruote.process_definition :name => "授信审批", :revision => "2.0.0" do
   cursor do
-    set :field => 'blade', :value => {'helper' => 'WorkflowCreditHelper'}
+    set :field => 'blade', :value => {'helper' => 'WorkflowCreditHelper', 'view' => 'view13'}
     #业务部审核"
     #发起审签
     business_manager :submit => {
@@ -12,7 +12,8 @@ Ruote.process_definition :name => "授信审批", :revision => "2.0.0" do
     #业务部门负责人审批
     business_dept_head  :submit => {
       '上一步:业务部业务经理' => 'jump to business_manager',
-      '下一步:风险部项目复核岗派发' => nil
+      '下一步:风险部项目复核岗派发' => nil,
+      "否决" => {'command' => 'jump to completer2','ok' => '0'}
     }
     
     #风险部审核
@@ -21,6 +22,7 @@ Ruote.process_definition :name => "授信审批", :revision => "2.0.0" do
       '上一步:业务部负责人审批' => 'jump to business_dept_head',
       '下一步:风险部项目审查岗审查' => nil}, 
       :form => 'form_13_1',
+      :validate => {'下一步:风险部项目审查岗审查' => 'validate_examiner'},
       :before_proceed => {
       '下一步:风险部项目审查岗审查' => 'save_examiner,remind_risk_dept_head'
     }
@@ -31,6 +33,7 @@ Ruote.process_definition :name => "授信审批", :revision => "2.0.0" do
       "下一步:风险部项目复核岗复审" => nil,
       '退回:业务经理补充' => 'jump to business_manager' },
       :form => 'form_13_2',
+      :validate => {'下一步:风险部项目复核岗复审' => 'validate_suggest'},
       :before_proceed => { 
       'all' => 'clear_receiver', 
       '下一步:风险部项目复核岗复审' => 'save_examiner_suggest' 
@@ -40,15 +43,20 @@ Ruote.process_definition :name => "授信审批", :revision => "2.0.0" do
     risk_dept_reviewer :tag => 'risk_dept_reviewer2',
       :submit => {
       '上一步:风险部项目审查岗审查' => 'jump to risk_dept_examiner',
-      '下一步:风险部负责人审批' => nil
+      '下一步:风险部负责人审批' => nil },
+      :before_proceed => { 
+      '上一步:风险部项目审查岗审查' => 'set_receiver' 
     }
 
     #风险部负责人审核
     risk_dept_head  :submit => {
       "上一步:风险部项目复核岗复审" => "jump to risk_dept_reviewer2",
       "下一步:业务部业务经理尽职调查" => nil,
-      "否决" => {'command' => 'jump to completer2','ok' => '0'}
+      "否决" => {'command' => 'jump to completer2','ok' => '0'}},
+      :before_proceed => { 
+      '下一步:业务部业务经理尽职调查' => 'set_view2' 
     }
+
 
     #尽职调查
     business_manager :tag => 'business_manager2',
@@ -79,14 +87,18 @@ Ruote.process_definition :name => "授信审批", :revision => "2.0.0" do
       :submit => {
       "上一步:风险部项目复核岗派发" => "jump to risk_dept_reviewer3",
       "下一步:风险部项目复核岗复审" => nil,
-      '退回:业务经理要求修改字段' => 'jump to business_dept_head2' 
+      '退回业务经理要求修改字段' => 'jump to business_manager2' },
+      :before_proceed => { 
+      'all' => 'clear_receiver' 
     }
 
     #项目复核岗复审
     risk_dept_reviewer :tag => 'risk_dept_reviewer4',
       :submit => {
       '上一步:风险部项目审查岗审查' => 'jump to risk_dept_examiner2',
-      '下一步:风险部负责人审批' => nil
+      '下一步:风险部负责人审批' => nil },
+      :before_proceed => { 
+      '上一步:风险部项目审查岗审查' => 'set_receiver' 
     }
 
     #风险部负责人审核
@@ -94,7 +106,10 @@ Ruote.process_definition :name => "授信审批", :revision => "2.0.0" do
       :submit => {
       "上一步:风险部项目复核岗复审" => "jump to risk_dept_reviewer4",
       "下一步:评审委员会秘书评审意见汇总" => nil,
-      "否决" => {'command' => 'jump to completer2','ok' => '0'}
+      "退回业务经理补充问题" => 'jump to business_manager2',
+      "否决" => {'command' => 'jump to completer2','ok' => '0'}},
+      :before_proceed => { 
+      '下一步:业务部业务经理尽职调查' => 'set_view3' 
     }
 
     #评审委员会秘书评审意见汇总

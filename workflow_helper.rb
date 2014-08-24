@@ -7,6 +7,14 @@ class WorkflowHelper
     @current_user = current_user
   end
 
+  def form
+    @workitem.params['form'] || 'form'
+  end
+
+  def view
+    @workitem.params['view'] || @workitem.fields['blade']['view']
+  end
+
   def before_edit
     return unless @workitem.params['before_edit']
     funs = @workitem.params['before_edit'].split(',').collect{|e| e.strip}
