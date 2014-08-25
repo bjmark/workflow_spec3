@@ -129,11 +129,16 @@ describe '授信审批' do
     process(:business_manager) 		
     process(:business_dept_head)
 
+    #派发
     process(:risk_dept_reviewer)
+    #审查
     process(:risk_dept_examiner)
+    #复审
     process(:risk_dept_reviewer)
+    #负责人审批
     process(:risk_dept_head)
 
+    #尽职调查
     process(:business_manager) 		
     process(:business_dept_head)
 
@@ -142,6 +147,7 @@ describe '授信审批' do
     process(:risk_dept_reviewer)
     process(:risk_dept_head)
 
+    #评审意见汇总
     process(:committee_secretary)
     process(:risk_dept_reviewer)
     process(:risk_dept_head)
@@ -172,70 +178,6 @@ describe '授信审批' do
     process(:business_dept_head)
 
     $road.last.should == 'business_dept_head'
-  end
-
-  specify 'go back2' do
-    process(:business_manager) 		
-    process(:business_dept_head)
-
-    process(:risk_dept_reviewer)
-    process(:risk_dept_examiner) do |wi|
-      op_name = "上一步:风险部项目复核岗派发"
-      helper = build_helper(wi)
-      helper.exec_submit(op_name)
-    end
-    process(:risk_dept_reviewer)
-
-    $road.last.should == 'risk_dept_reviewer'
-  end
-
-  specify 'go back3' do
-    process(:business_manager) 		
-    process(:business_dept_head)
-
-    process(:risk_dept_reviewer)
-    process(:risk_dept_examiner)
-    process(:risk_dept_reviewer)
-    process(:risk_dept_head) do |wi|
-      op_name = "上一步:风险部项目复核岗复审"
-      helper = build_helper(wi)
-      helper.exec_submit(op_name)
-    end
-    process(:risk_dept_reviewer)
-
-    $road.last.should == 'risk_dept_reviewer'
-  end
-
-  specify 'go back4' do
-    process(:business_manager) 		
-    process(:business_dept_head)
-
-    process(:risk_dept_reviewer)
-    process(:risk_dept_examiner)
-    process(:risk_dept_reviewer)
-    process(:risk_dept_head)
-
-    process(:business_manager) 		
-    process(:business_dept_head)
-
-    process(:risk_dept_reviewer)
-    process(:risk_dept_examiner)
-    process(:risk_dept_reviewer)
-    process(:risk_dept_head)
-
-    process(:committee_secretary)
-    process(:risk_dept_reviewer)
-    process(:risk_dept_head)
-
-    process(:committee_director)
-    process(:president) do |wi|
-      op_name = "上一步:主任委员审批"
-      helper = build_helper(wi)
-      helper.exec_submit(op_name)
-    end
-    process(:committee_director)
-
-    $road.last.should == 'committee_director'
   end
 
   specify '项目复核岗指定审查员' do
@@ -300,4 +242,97 @@ describe '授信审批' do
     end
   end
 
+  specify 'set view to view13_2' do
+    process(:business_manager) 		
+    process(:business_dept_head)
+
+    #派发
+    process(:risk_dept_reviewer)
+    #审查
+    process(:risk_dept_examiner)
+    #复审
+    process(:risk_dept_reviewer)
+    #负责人审批
+    process(:risk_dept_head) do |wi|
+      helper = build_helper(wi)
+      helper.exec_submit('下一步:业务部业务经理尽职调查')
+    end
+    
+    #尽职调查
+    process(:business_manager) do |wi|
+      wi.fields['blade']['view'].should == 'view13_2'
+    end
+  end
+
+  specify '评审委员会秘书评审意见汇总,退回业务经理补充材料初审及补充调查' do
+    process(:business_manager) 		
+    process(:business_dept_head)
+
+    #派发
+    process(:risk_dept_reviewer)
+    #审查
+    process(:risk_dept_examiner)
+    #复审
+    process(:risk_dept_reviewer)
+    #负责人审批
+    process(:risk_dept_head)
+
+    #尽职调查
+    process(:business_manager) 		
+    process(:business_dept_head)
+
+    process(:risk_dept_reviewer)
+    process(:risk_dept_examiner)
+    process(:risk_dept_reviewer)
+    process(:risk_dept_head)
+
+    #评审意见汇总
+    process(:committee_secretary) do |wi|
+      helper = build_helper(wi)
+      helper.exec_submit('退回业务经理补充材料初审及补充调查')
+    end
+
+    process(:business_manager) do |wi|
+      wi.params['tag'].should == 'business_manager2'
+      wi.fields['blade']['business_manager2'].should == {'评审委员会秘书评审意见汇总' => 'jump to committee_secretary'}
+    end
+  end
+
+  specify '选择终审人' do
+    process(:business_manager) 		
+    process(:business_dept_head)
+
+    #派发
+    process(:risk_dept_reviewer)
+    #审查
+    process(:risk_dept_examiner)
+    #复审
+    process(:risk_dept_reviewer)
+    #负责人审批
+    process(:risk_dept_head)
+
+    #尽职调查
+    process(:business_manager) 		
+    process(:business_dept_head)
+
+    process(:risk_dept_reviewer)
+    process(:risk_dept_examiner) do |wi|
+      req = Request.new
+      req.params = {'final_decision_maker_role' => 'president'} #选择终审人
+      
+      op_name = '下一步:风险部项目复核岗复审'
+      helper = build_helper(wi,req)
+      helper.before_proceed(op_name)
+      helper.exec_submit(op_name)
+    end
+    
+    process(:risk_dept_reviewer) do |wi|
+      wi['blade.final_decision_maker_role'].should == 'president'
+      wi['blade.committee_director1'].should == { 
+        "同意" => 'del',
+        "否决" => 'del'
+      }
+      wi['blade.final_decision_maker_role_history'].should == ['1']
+    end
+  end
 end

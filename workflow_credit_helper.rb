@@ -17,15 +17,7 @@ class WorkflowCreditHelper < WorkflowHelper
     @workitem.fields['blade']['receiver_id'] = 
       @workitem.fields['blade']['default_examiner_id']
   end
-
-  def set_view2
-    @workitem.fields['blade']['view'] = 'view13_2'
-  end
   
-  def set_view3
-    @workitem.fields['blade']['view'] = 'view13_3'
-  end
-
   def validate_examiner
     error = []
     if @req.params['examiner_id'] == ''
@@ -40,6 +32,31 @@ class WorkflowCreditHelper < WorkflowHelper
       error << '请输入审查建议'
     end
     error
+  end
+
+  def save_final_decision_maker
+    if @workitem.fields['blade']['final_decision_maker_role'] != @req.params['final_decision_maker_role']
+      @workitem.fields['blade']['final_decision_maker_role_history'] = [] unless @workitem.fields['blade']['final_decision_maker_role_history']
+      @workitem.fields['blade']['final_decision_maker_role_history'] <<
+      case @workitem.participant_name
+      when 'risk_dept_examiner'
+        "1"
+      when 'risk_dept_reviewer'
+        "2"
+      when 'risk_dept_head'
+        "3"
+      end
+    end
+    @workitem.fields['blade']['final_decision_maker_role'] = @req.params['final_decision_maker_role']
+    case @workitem.fields['blade']['final_decision_maker_role']
+    when 'committee_director'
+      @workitem.fields['blade']['committee_director1'] = { "下一步:总裁审批" => 'del' }
+    when 'president'
+      @workitem.fields['blade']['committee_director1'] = { 
+        "同意" => 'del',
+        "否决" => 'del'
+      }
+    end
   end
 end
 

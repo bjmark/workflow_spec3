@@ -45,7 +45,7 @@ class WorkflowHelper
 
   def merge_submit
     my_tag = @workitem.fields['params']['tag']
-    hash = @workitem.fields[my_tag]
+    hash = @workitem.fields['blade'][my_tag]
     submit = @workitem.fields['params']['submit']
 
     return submit if !hash
@@ -70,7 +70,7 @@ class WorkflowHelper
         if k == 'command'
           @workitem.command = v
         else
-          @workitem.fields[k] = v
+          @workitem[k] = v
         end
       end
     end
