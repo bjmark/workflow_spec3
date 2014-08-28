@@ -1,1 +1,0 @@
-../workflow_lab3/db/workflow_def/workflow_credit_approval.rb
