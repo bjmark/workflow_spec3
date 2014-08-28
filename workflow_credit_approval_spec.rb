@@ -17,7 +17,7 @@ class CompeleterParticipant
   end
 end
 
-class WorkflowHelper
+class WorkflowHelper2
   attr_reader :engine, :workitem
 
   def initialize(engine, workitem)
@@ -104,22 +104,22 @@ describe '授信审批' do
   
   specify '完美路线' do
     process(:business_manager) do |wi|
-      w = WorkflowHelper.new(@engine, wi)
+      w = WorkflowHelper2.new(@engine, wi)
       w.prev_tag.should be_nil
       w.prev_participant.should be_nil
     end
     process(:business_dept_head) do |wi|
-      w = WorkflowHelper.new(@engine, wi)
+      w = WorkflowHelper2.new(@engine, wi)
       w.prev_tag.should == 'INIT.handler'
       w.prev_participant.should == 'business_manager'
     end
     process(:risk_dept_reviewer) do |wi|
-      w = WorkflowHelper.new(@engine, wi)
+      w = WorkflowHelper2.new(@engine, wi)
       w.prev_tag.should == 'INIT.head_review'
     end
     process(:risk_dept_examiner)
     process(:risk_dept_reviewer) do |wi|
-      w = WorkflowHelper.new(@engine, wi)
+      w = WorkflowHelper2.new(@engine, wi)
       w.prev_tag.should == 'INIT.risk_exam'
     end
     process(:risk_dept_head)
