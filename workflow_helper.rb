@@ -1,7 +1,7 @@
 #encoding:utf-8
 
 class WorkflowHelper
-  def initialize(workitem, req, current_user)
+  def initialize(workitem, req = nil, current_user = nil)
     @workitem = workitem
     @req = req
     @current_user = current_user
@@ -21,16 +21,33 @@ class WorkflowHelper
     funs.each{|m| self.send(m)}
   end
 
-  def before_proceed(op_name, fun_param = {})
+  #handle following conditions
+  # 'before_proceed' => { 'proceed' => 'fun1,fun2' }
+  # 'before_proceed' => { 'return' => 'fun1,fun2 if key' }
+  # 'before_proceed' => { 'all' => fun1,fun2 if !key'}
+  # 'before_proceed' => { 'proceed' => ['fun1,fun2 if !key', 'fun4','fun3']}
+  def before_proceed(op_name)
     return unless (h = @workitem.params['before_proceed'])
     ([op_name, 'all'] & h.keys).each do |k|
-      funs = h[k].split(',').collect{|e| e.strip}
-      funs.each do |m| 
-        if fun_param[m]
-          self.send(m, fun_param[m])
-        else
-          self.send(m)
+      exp = [h[k]].flatten
+      exp.each do |m| 
+        statment, key = m.split('if')
+        if key
+          key = key.strip
+          neg = false
+          if key[0] == '!'
+            neg = true
+            key = key[1..-1]
+          end
+          if neg
+            next if @workitem[key]
+          else
+            next if !@workitem[key]
+          end
         end
+
+        funs = statment.split(',').collect{|e| e.strip}
+        funs.each{|f| self.send(f)}
       end
     end
   end
@@ -39,9 +56,30 @@ class WorkflowHelper
   def validate(op_name)
     error = []
     return error unless (h = @workitem.params['validate'])
-    return error unless (s = h[op_name])
-    funs = s.split(',').collect{|e| e.strip}
-    funs.each{|m| error << self.send(m)}
+
+    ([op_name] & h.keys).each do |k|
+      exp = [h[k]].flatten
+      exp.each do |m| 
+        statment, key = m.split('if')
+        if key
+          key = key.strip
+          neg = false
+          if key[0] == '!'
+            neg = true
+            key = key[1..-1]
+          end
+          if neg
+            next if @workitem[key]
+          else
+            next if !@workitem[key]
+          end
+        end
+
+        funs = statment.split(',').collect{|e| e.strip}
+        funs.each{|f| error << self.send(f)}
+      end
+    end
+
     error.flatten
   end
 
@@ -50,38 +88,15 @@ class WorkflowHelper
     @workitem.fields['blade'].delete('receiver_id')
   end
 
-  def merge_submit
+  def custom_fields
     my_tag = @workitem.fields['params']['tag']
     hash = @workitem.fields['blade'][my_tag]
-    submit = @workitem.fields['params']['submit']
 
-    return submit if !hash
+    wi_cf = Array(@workitem.fields['params']['custom_fields'])
 
-    submit = submit.merge(hash)
-    submit.delete_if{|k,v| v == 'del'}
+    return wi_cf if !hash
 
-    return submit
-  end
-
-  def exec_submit(op_name)
-    submit = merge_submit
-
-    raise 'invalid workflow operation' if !submit.has_key?(op_name)
-    op = submit[op_name]
-
-    case op
-    when String
-      @workitem.command = op
-    when Hash
-      op.each do |k,v|
-        if k == 'command'
-          @workitem.command = v
-        else
-          @workitem[k] = v
-        end
-      end
-    end
-    return @workitem
+    wi_cf + Array(hash['custom_fields'])
   end
 end
 

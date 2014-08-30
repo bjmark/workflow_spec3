@@ -12,26 +12,22 @@ Ruote.process_definition :code => 'credit_approval', :name => "授信审批",
         { :type => 'checkbox', :name => 'declined', :label => '否决' }
     ]
 
-    set :field => 'decision', :value=> 'declined', :if => "${f:declined}"
     jump :to => 'finish', :if => "${f:declined}"
 
     risk_dept_reviewer :tag => 'INIT.risk_dispatch', :name => '项目复审岗派发',
-      :in_form => 'in_form_13_1',
+      :dispatch_to => { :role => 'risk_dept_examiner' },
       :before_proceed => {
-      :proceed => 'save_examiner, remind_risk_dept_head'
+      :proceed => 'save_examiner, remind_risk_dept_head if more_info'
     }
 
     risk_dept_examiner :tag => 'INIT.risk_exam', :name => '立项审查',
-      :custom_fields => [{ :type => 'checkbox', :name => 'more_info', :label => '修改或补充材料' }],
-      :form => 'form_13_2',
-      :before_proceed => {:all => 'clear_receiver',
-        :proceed => 'save_examiner_suggest if !more_info'
-    }
-
+      :can_delegate_to => { :role => 'risk_dept_examiner' },
+      :custom_fields => [
+        { :type => 'checkbox', :name => 'more_info', :label => '修改或补充材料' }
+    ]
     jump :to => 'INIT.handler', :if => '${f:more_info}'
 
-    risk_dept_reviewer :tag => 'INIT.risk_review', :name => '项目复核岗复核',
-      :before_proceed => {:return => 'set_receiver'}
+    risk_dept_reviewer :tag => 'INIT.risk_review', :name => '项目复核岗复核'
 
     risk_dept_head :tag => 'INIT.risk_head_review', :name => '风险负责人审批',
       :custom_fields => [
@@ -43,31 +39,15 @@ Ruote.process_definition :code => 'credit_approval', :name => "授信审批",
     business_dept_head :tag => 'DD.head_review', :name => '业务部负责人审批'
 
     risk_dept_reviewer :tag => 'DD.risk_dispatch', :name => '项目复审岗派发',
-      :in_form => 'in_form_13_1',
-      :before_proceed => {
-      :proceed => 'save_examiner, remind_risk_dept_head'
-    }
-
-    risk_dept_examiner :tag => 'DD.risk_examine', :name => '项目审查',
-      :custom_fields => [{ :type => 'checkbox', :name => 'more_info', :label => '修改或补充材料' }],
-      :in_form => 'in_form_13_3',
-      :before_proceed => { :proceed => 'save_final_decision_maker',
-        :all => 'clear_receiver'}
-    
-    jump :to => 'DD.handler', :if => '${f:more_info}'
-
-    risk_dept_reviewer :tag => 'DD.risk_review', :name => '项目复核岗复审',
-      :in_form => 'in_form_13_3',
-      :before_proceed => {:return => 'set_receiver',
-        :proceed => 'save_final_decision_maker'}
+      :dispatch_to => { :role => 'risk_dept_examiner' }
+    risk_dept_examiner :tag => 'DD.risk_examine', :name => '项目审查'
+    risk_dept_reviewer :tag => 'DD.risk_review', :name => '项目复核岗复审'
 
     risk_dept_head :tag => 'VOTE.risk_head', :name => '负责人审批',
-      :in_form => 'in_form_13_3',
       :custom_fields => [
         { :type => 'checkbox', :name => 'declined', :label => '否决' },
-        { :type => 'checkbox', :name => 'more_info', :label => '业务经理修改或补充材料' }],
-      :before_proceed => { :proceed => 'save_final_decision_maker'}
-
+        { :type => 'checkbox', :name => 'more_info', :label => '业务经理修改或补充材料' }
+    ]
     jump :to => 'finish', :if => "${f:declined}"
     jump :to => 'DD.handler', :if => '${f:more_info}'
 
@@ -78,18 +58,13 @@ Ruote.process_definition :code => 'credit_approval', :name => "授信审批",
     risk_dept_head :tag => 'VOTE.risk_head', :name => '风险负责人审批'
 
     # VP
-    committee_director :tag => 'VOTE.review', :name => '主任委员审批'
-
-    jump :to => 'VOTE.notice', :if => "${f:final_decision} == yes"
-    jump :to => 'VOTE.notice', :if => "${f:final_decision} == no"
-
-    president :tag => 'VOTE.president', :name => '总裁审批', 
+    committee_director :tag => 'VOTE.review', :name => '主任委员审批',
       :custom_fields => [
-        { :type => 'radio', :name => 'final_decision', :value => 'yes', :label => '否决' },
-        { :type => 'radio', :name => 'final_decision', :value => 'no', :label => '同意' }
+        { :type => 'checkbox', :name => 'president_approval', :label => '总裁审批'}
     ]
+    president :tag => 'VOTE.president', :name => '总裁审批', :if => '${f:president_approval}'
 
-    risk_dept_reviewer :tag => 'VOTE.notice'
+    risk_dept_review :tag => 'VOTE.notice'
     risk_dept_head :tag => 'VOTE.notice_dispatch'
     completer :tag => 'finish', :name => '结束'
   end

@@ -2,12 +2,12 @@
 class WorkflowCreditApprovalHelper < WorkflowHelper
   def save_examiner
     #WorkflowLog.create!(:message => "save_examiner")
-    @workitem.fields['blade']['default_examiner_id'] = @req.params['dispatch_to']
-    @workitem.fields['blade']['receiver_id'] = @req.params['dispatch_to']
+    @workitem.fields['blade']['default_examiner_id'] = @req.params['examiner_id']
+    @workitem.fields['blade']['receiver_id'] = @req.params['examiner_id']
   end
 
   def remind_risk_dept_head
-    WorkflowLog.create!(:message => "remind_risk_dept_head")
+    #WorkflowLog.create!(:message => "remind_risk_dept_head")
   end
 
   def save_examiner_suggest
@@ -53,12 +53,13 @@ class WorkflowCreditApprovalHelper < WorkflowHelper
     @workitem.fields['blade']['final_decision_maker_role'] = @req.params['final_decision_maker_role']
     case @workitem.fields['blade']['final_decision_maker_role']
     when 'committee_director'
-      @workitem.fields['blade']['committee_director1'] = { "下一步:总裁审批" => 'del' }
+      @workitem.fields['blade']['VOTE.review'] = {
+        :custom_fields => [
+          { :type => 'radio', :name => 'final_decision', :value => 'yes', :label => '否决' },
+          { :type => 'radio', :name => 'final_decision', :value => 'no', :label => '同意' },
+      ]}
     when 'president'
-      @workitem.fields['blade']['committee_director1'] = { 
-        "同意" => 'del',
-        "否决" => 'del'
-      }
+      @workitem.fields['blade'].delete('VOTE.review')
     end
   end
 end
