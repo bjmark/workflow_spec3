@@ -154,7 +154,6 @@ describe '授信审批' do
     ]
   end
 
-
   specify '指派审查员' do
     process(:business_manager)
     process(:business_dept_head)  
@@ -166,8 +165,8 @@ describe '授信审批' do
     end
 
     process(:risk_dept_examiner) do |wi|
-      wi.fields['blade']['receiver_id'].should == '123'
-      wi['blade.receiver_id'].should == '123'
+      wi.fields['blade']['INIT-risk_exam_user_id'].should == '123'
+      wi['blade.INIT-risk_exam_user_id'].should == '123'
       req = Request.new
       req.params = {'suggest' => 'aggree', 'aggree' => 'ok'}
       h = WorkflowCreditApprovalHelper.new(wi, req)
@@ -176,10 +175,9 @@ describe '授信审批' do
     end
     
     process(:risk_dept_reviewer) do |wi|
-      wi['blade.receiver_id'].should == nil
     end
   end
-
+=begin
   specify '主任委员终审' do
     process(:business_manager)
     process(:business_dept_head)  
@@ -217,4 +215,5 @@ describe '授信审批' do
     $road.last.should == 'completer'
     $debug.last.should == 'declined'
   end
+=end
 end

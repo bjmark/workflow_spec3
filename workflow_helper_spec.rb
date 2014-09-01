@@ -25,6 +25,24 @@ describe 'workflow_helper' do
     t.funs.should == %w(fun1 fun2)
   end
 
+  specify 'fun_filter' do
+    wi = Workitem.new
+    t = WorkflowTestHelper.new(wi)
+    t.fun_filter('fun1,fun2').should == %w(fun1 fun2)
+  end
+  
+  specify 'fun_filter2' do
+    wi = Workitem.new
+    wi.fields = {'key' => 'yes'}
+    wi['key'].should == 'yes'
+
+    t = WorkflowTestHelper.new(wi)
+    t.fun_filter('fun1,fun2 if key').should == %w(fun1 fun2)
+    t.fun_filter('fun1,fun2 if !key').should == []
+    t.fun_filter('fun1,fun2 if key == yes').should == %w(fun1 fun2)
+    t.fun_filter('fun1,fun2 if key == no').should == []
+  end
+
   specify 'before_proceed' do
     wi = Workitem.new
     wi.params = { 'before_proceed' => { 'proceed' => 'fun1,fun2' } }
@@ -82,7 +100,7 @@ describe 'workflow_helper' do
     wi = Workitem.new
     wi.params = { 'validate' => 
       { 
-        'proceed' => 'validate1 if more_info',
+        'proceed' => 'validate1 if more_info == yes',
       } 
     }
     wi.fields = { 'more_info' => 'yes' }
@@ -92,5 +110,4 @@ describe 'workflow_helper' do
     t = WorkflowTestHelper.new(wi)
     t.validate('proceed').should == %w(e1 e2)
   end
-
 end

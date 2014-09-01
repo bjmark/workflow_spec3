@@ -1,5 +1,5 @@
 # encoding:utf-8
-#
+
 Ruote.process_definition :code => 'credit_approval', :name => "授信审批",
   :version => "1.0.0", :target_model => 'Proposal' do
   cursor do
@@ -8,88 +8,102 @@ Ruote.process_definition :code => 'credit_approval', :name => "授信审批",
 
     business_manager :tag => 'INIT.handler', :name => '主办或协办立项申请'
     business_dept_head :tag => 'INIT.head_review', :name => '业务负责人审批',
-      :custom_fields => [
-        { :type => 'checkbox', :name => 'declined', :label => '否决' }
-    ]
-
+      :custom_fields => { '否决' => { :type => 'checkbox', :name => 'declined'} }
+    
     set :field => 'decision', :value=> 'declined', :if => "${f:declined}"
     jump :to => 'finish', :if => "${f:declined}"
 
     risk_dept_reviewer :tag => 'INIT.risk_dispatch', :name => '项目复审岗派发',
-      :in_form => 'in_form_13_1',
-      :before_proceed => {
-      :proceed => 'save_examiner, remind_risk_dept_head'
+      :in_form => 'in_form_credit_approval_1',
+      :before_proceed => { :proceed => 'save_examiner, remind_risk_dept_head'
     }
+    #use '-' to replace '.', as blade.INIT.risk_dispatch_user_id will lead to field['blade.INIT.risk_dispatch_user_id']
+    set :field => 'blade.INIT-risk_exam_user_id', :value => '${f:blade.default_examiner_id}'
 
     risk_dept_examiner :tag => 'INIT.risk_exam', :name => '立项审查',
-      :custom_fields => [{ :type => 'checkbox', :name => 'more_info', :label => '修改或补充材料' }],
-      :form => 'form_13_2',
-      :before_proceed => {:all => 'clear_receiver',
-        :proceed => 'save_examiner_suggest if !more_info'
+      :custom_fields => { '修改或补充材料' => { :type => 'checkbox', :name => 'more_info'} },
+      :form => 'form_credit_approval_2',
+      :before_proceed => { :proceed => 'save_examiner_suggest if !more_info'
     }
 
     jump :to => 'INIT.handler', :if => '${f:more_info}'
 
-    risk_dept_reviewer :tag => 'INIT.risk_review', :name => '项目复核岗复核',
-      :before_proceed => {:return => 'set_receiver'}
+    risk_dept_reviewer :tag => 'INIT.risk_review', :name => '项目复核岗复核'
 
     risk_dept_head :tag => 'INIT.risk_head_review', :name => '风险负责人审批',
-      :custom_fields => [
-        { :type => 'checkbox', :name => 'declined', :label => '否决' }
-    ]
+      :custom_fields => { '否决' => { :type => 'checkbox', :name => 'declined'} }
+
+    set :field => 'decision', :value=> 'declined', :if => "${f:declined}"
     jump :to => 'finish', :if => "${f:declined}"
 
-    business_manager :tag => 'DD.handler', :name => '尽职调查'
+    business_manager :tag => 'DD.handler', :name => '尽职调查',
+      :before_edit => 'custom_fields_for_business_manager'
+
+    set :field =>'more_info_from_committee_secretary', :value => nil, :if => "${f:back_to_committee_secretary} == yes"
+    jump :to => 'VOTE.collect_votes', :if => "${f:back_to_committee_secretary}"
+
     business_dept_head :tag => 'DD.head_review', :name => '业务部负责人审批'
 
     risk_dept_reviewer :tag => 'DD.risk_dispatch', :name => '项目复审岗派发',
-      :in_form => 'in_form_13_1',
-      :before_proceed => {
-      :proceed => 'save_examiner, remind_risk_dept_head'
+      :in_form => 'in_form_credit_approval_1',
+      :before_proceed => { :proceed => 'save_examiner, remind_risk_dept_head'
     }
 
+    set :field => 'blade.DD-risk_examine_user_id', :value => '${f:blade.default_examiner_id}'
+
     risk_dept_examiner :tag => 'DD.risk_examine', :name => '项目审查',
-      :custom_fields => [{ :type => 'checkbox', :name => 'more_info', :label => '修改或补充材料' }],
-      :in_form => 'in_form_13_3',
-      :before_proceed => { :proceed => 'save_final_decision_maker',
-        :all => 'clear_receiver'}
+      :custom_fields => { '修改或补充材料' => { :type => 'checkbox', :name => 'more_info'} },
+      :in_form => 'in_form_credit_approval_3',
+      :before_proceed => { :proceed => 'save_final_decision_maker'
+    }
     
     jump :to => 'DD.handler', :if => '${f:more_info}'
 
     risk_dept_reviewer :tag => 'DD.risk_review', :name => '项目复核岗复审',
-      :in_form => 'in_form_13_3',
-      :before_proceed => {:return => 'set_receiver',
-        :proceed => 'save_final_decision_maker'}
+      :in_form => 'in_form_credit_approval_3',
+      :before_proceed => { :proceed => 'save_final_decision_maker'
+    }
 
     risk_dept_head :tag => 'VOTE.risk_head', :name => '负责人审批',
-      :in_form => 'in_form_13_3',
-      :custom_fields => [
-        { :type => 'checkbox', :name => 'declined', :label => '否决' },
-        { :type => 'checkbox', :name => 'more_info', :label => '业务经理修改或补充材料' }],
+      :in_form => 'in_form_credit_approval_3',
+      :custom_fields => { '否决' => { :type => 'checkbox', :name => 'declined' },
+        '业务经理修改或补充材料' => { :type => 'checkbox', :name => 'more_info' } 
+    },
       :before_proceed => { :proceed => 'save_final_decision_maker'}
 
+    set :field => 'decision', :value=> 'declined', :if => "${f:declined}"
     jump :to => 'finish', :if => "${f:declined}"
     jump :to => 'DD.handler', :if => '${f:more_info}'
 
+    #committee_secretary = risk_dept_examiner
+    set :field => 'blade.VOTE-collect_votes_user_id', :value => '${f:blade.default_examiner_id}'
     committee_secretary :tag => 'VOTE.collect_votes', :name => '评审意见汇总',
-      :more_info => 'DD.handler'
+      :custom_fields => { '业务经理修改或补充材料' => { :type => 'checkbox', :name => 'more_info_from_committee_secretary' } 
+    }
+
+    jump :to => 'DD.handler', :if => '${f:more_info_from_committee_secretary} == yes'
 
     risk_dept_reviewer :tag => 'VOTE.risk_review', :name => '项目复审岗复审'
+
     risk_dept_head :tag => 'VOTE.risk_head', :name => '风险负责人审批'
 
     # VP
-    committee_director :tag => 'VOTE.review', :name => '主任委员审批'
+    committee_director :tag => 'VOTE.review', :name => '主任委员审批',
+      :before_edit => 'custom_fields_for_committee_director'
 
-    jump :to => 'VOTE.notice', :if => "${f:final_decision} == yes"
-    jump :to => 'VOTE.notice', :if => "${f:final_decision} == no"
+    set :field => 'blade.VOTE-notice', :value => '${f:blade.default_examiner_id}', :if => "${f:declined}"
+    set :field => 'blade.VOTE-notice', :value => '${f:blade.default_examiner_id}', :if => "${f:agreed}"
+    jump :to => 'VOTE.notice', :if => "${f:declined}"
+    jump :to => 'VOTE.notice', :if => "${f:agreed}"
 
     president :tag => 'VOTE.president', :name => '总裁审批', 
-      :custom_fields => [
-        { :type => 'radio', :name => 'final_decision', :value => 'yes', :label => '否决' },
-        { :type => 'radio', :name => 'final_decision', :value => 'no', :label => '同意' }
-    ]
+      :custom_fields => { '否决' => { :type => 'checkbox', :name => 'declined' },
+        '同意' =>  { :type => 'checkbox', :name => 'agreed'}
+    }
 
-    risk_dept_reviewer :tag => 'VOTE.notice'
+    set :field => 'blade.VOTE-notice', :value => '${f:blade.default_examiner_id}'
+    risk_dept_examiner :tag => 'VOTE.notice'
+
     risk_dept_head :tag => 'VOTE.notice_dispatch'
     completer :tag => 'finish', :name => '结束'
   end
