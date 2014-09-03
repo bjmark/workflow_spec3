@@ -22,7 +22,7 @@ Ruote.process_definition :code => 'credit_approval', :name => "授信审批",
     risk_dept_examiner :tag => 'INIT.risk_exam', :name => '立项审查',
       :custom_fields => { '修改或补充材料' => { :type => 'checkbox', :name => 'more_info'} },
       :form => 'form_credit_approval_2',
-      :before_proceed => { :proceed => 'save_examiner_suggest if !more_info'
+      :before_proceed => { :proceed => 'save_examiner_suggest if more_info == no'
     }
 
     jump :to => 'INIT.handler', :if => '${f:more_info} == yes'
